@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geologiske Tidsperioder - Sorteringsspil</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px; 
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            cursor: pointer; /* Indikér, at man kan klikke */
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .game-area {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .periods, .timeline {
+            width: 48%;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        li {
+            width: 100%; 
+            height: 40px; 
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #e3e3e3;
+            text-align: center;
+            line-height: 30px;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: grab;
+        }
+
+        .period {
+            background-color: #b3d1e5;
+            cursor: grab;
+            border: 1px solid #b0c4de;
+        }
+
+        .timeline li {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+            align-items: center;
+            background-color: #fafafa;
+        }
+
+        li.over {
+            border: 2px dashed #007bff;
+        }
+
+        .timeline-year {
+            font-weight: bold;
+            margin-right: 10px;
+            color: #007bff;
+        }
+
+        #checkOrderBtn {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        #checkOrderBtn:hover {
+            background-color: #218838;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        li.correct {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        li.wrong {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        #timer {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sorter de geologiske tidsperioder</h1>
+        
+        <div class="game-area">
+            <!-- Perioder til højre -->
+            <ul class="periods" id="period-list"></ul>
+
+            <!-- Tidslinjen til venstre med årstal -->
+            <ul class="timeline" id="timeline">
+                <li data-period="Kvartær"><span class="timeline-year">2,6-nu mio år </span></li>
+                <li data-period="Neogen"><span class="timeline-year">23-2,6 mio år </span></li>
+                <li data-period="Palæogen"><span class="timeline-year">66-23 mio år </span></li>
+                <li data-period="Kridt"><span class="timeline-year">145-66 mio år </span></li>
+                <li data-period="Jura"><span class="timeline-year">201-145 mio år </span></li>
+                <li data-period="Trias"><span class="timeline-year">252-201 mio år </span></li>
+                <li data-period="Perm"><span class="timeline-year">299-252 mio år </span></li>
+                <li data-period="Karbon/Kul"><span class="timeline-year">359-299 mio år </span></li>
+                <li data-period="Devon"><span class="timeline-year">419-359 mio år </span></li>
+                <li data-period="Silur"><span class="timeline-year">443-419 mio år </span></li>
+                <li data-period="Ordovicium"><span class="timeline-year">485-443 mio år </span></li>
+                <li data-period="Kambrium"><span class="timeline-year">541-485 mio år </span></li>
+            </ul>
+        </div>
+
+        <button id="checkOrderBtn">Tjek Rækkefølgen</button>
+        <div id="timer">Tid: <span id="timerDisplay">0</span> sek</div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const periods = [
+            "Kvartær",
+            "Neogen",
+            "Palæogen",
+            "Kridt",
+            "Jura",
+            "Trias",
+            "Perm",
+            "Karbon/Kul",
+            "Devon",
+            "Silur",
+            "Ordovicium",
+            "Kambrium"
+        ];
+
+        // Funktion til at blande perioderne
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Generér den tilfældige rækkefølge af perioder
+        const shuffledPeriods = shuffleArray(periods.slice());
+
+        // Indsæt de blandede perioder i DOM'en
+        const periodList = document.getElementById('period-list');
+        shuffledPeriods.forEach(period => {
+            const li = document.createElement('li');
+            li.className = 'period';
+            li.draggable = true;
+            li.textContent = period;
+            periodList.appendChild(li);
+        });
+
+        const timelineItems = document.querySelectorAll('#timeline li');
+        const checkOrderBtn = document.getElementById("checkOrderBtn");
+        const resultText = document.getElementById("result");
+        const timerDisplay = document.getElementById("timerDisplay");
+
+        let draggedElement = null;
+        let timerInterval = null;
+        let elapsedTime = 0;
+
+        // Start timer ved dragstart
+        function startTimer() {
+            if (!timerInterval) {
+                timerInterval = setInterval(() => {
+                    elapsedTime++;
+                    timerDisplay.textContent = elapsedTime;
+                }, 1000);
+            }
+        }
+
+        // Drag events for periods
+        const periodsElements = document.querySelectorAll('.period');
+        periodsElements.forEach(period => {
+            period.addEventListener('dragstart', () => {
+                startTimer(); // Start timer ved dragstart
+                draggedElement = period;
+                period.classList.add('dragging');
+            });
+
+            period.addEventListener('dragend', () => {
+                period.classList.remove('dragging');
+            });
+        });
+
+        // Drag events for timeline (allow dropping periods between timeline items)
+        timelineItems.forEach(item => {
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault(); 
+            });
+
+            item.addEventListener('dragenter', () => {
+                item.classList.add('over');
+            });
+
+            item.addEventListener('dragleave', () => {
+                item.classList.remove('over');
+            });
+
+            item.addEventListener('drop', () => {
+                item.classList.remove('over');
+
+                if (item.children.length > 1) {
+                    const existingElement = item.querySelector('.period');
+                    const originalParent = draggedElement.parentElement;
+                    originalParent.appendChild(existingElement);
+                    item.appendChild(draggedElement);
+                } else {
+                    item.appendChild(draggedElement);
+                }
+            });
+        });
+
+        // Tjek rækkefølgen
+        checkOrderBtn.addEventListener('click', () => {
+            let correctCount = 0; // Tæller for korrekte placeringer
+
+            timelineItems.forEach(item => {
+                const placedPeriod = item.querySelector('.period');
+                const expectedPeriod = item.dataset.period;
+
+                if (placedPeriod) {
+                    placedPeriod.classList.remove('correct', 'wrong');
+
+                    if (placedPeriod.textContent === expectedPeriod) {
+                        placedPeriod.classList.add('correct');
+                        correctCount++; // Tæl korrekt placering
+                    } else {
+                        placedPeriod.classList.add('wrong');
+                    }
+                }
+            });
+
+            if (correctCount === timelineItems.length) { // Hvis alle er korrekte
+                resultText.textContent = "Rækkefølgen er korrekt!";
+                resultText.style.color = "green";
+                clearInterval(timerInterval); // Stop timeren
+            } else {
+                resultText.textContent = "Rækkefølgen er forkert!";
+                resultText.style.color = "red";
+            }
+        });
+
+        // Stop timeren ved at klikke på hele skærmen
+        document.body.addEventListener('click', () => {
+            if (!timerInterval) {
+                startTimer();
+            }
+        });
+    </script>
+</body>
+</html>
