@@ -1,82 +1,55 @@
-const periods = document.querySelectorAll('.period');
-const timelineItems = document.querySelectorAll('#timeline li');
-const checkOrderBtn = document.getElementById("checkOrderBtn");
-const resultText = document.getElementById("result");
+const periods = [
+    { name: 'Hadean', year: '4.6 to 4.0 billion years ago' },
+    { name: 'Archean', year: '4.0 to 2.5 billion years ago' },
+    { name: 'Proterozoic', year: '2.5 billion to 541 million years ago' },
+    { name: 'Paleozoic', year: '541 to 252 million years ago' },
+    { name: 'Mesozoic', year: '252 to 66 million years ago' },
+    { name: 'Cenozoic', year: '66 million years ago to present' }
+];
 
-let draggedElement = null;
+const periodsContainer = document.getElementById('periods');
+const yearsContainer = document.getElementById('years');
+const scoreList = document.getElementById('scoreList');
 
-// Drag events for periods
 periods.forEach(period => {
-    period.addEventListener('dragstart', () => {
-        draggedElement = period;
-        period.classList.add('dragging');
-    });
+    const periodItem = document.createElement('div');
+    periodItem.className = 'item';
+    periodItem.textContent = period.name;
+    periodItem.dataset.year = period.year;
+    periodsContainer.appendChild(periodItem);
 
-    period.addEventListener('dragend', () => {
-        period.classList.remove('dragging');
-    });
+    const yearItem = document.createElement('div');
+    yearItem.className = 'item';
+    yearItem.textContent = period.year;
+    yearItem.dataset.period = period.name;
+    yearsContainer.appendChild(yearItem);
 });
 
-// Drag events for timeline (allow dropping periods between timeline items)
-timelineItems.forEach(item => {
-    item.addEventListener('dragover', (e) => {
-        e.preventDefault(); // Nødvendig for at tillade drop
-    });
+const items = document.querySelectorAll('.item');
 
-    item.addEventListener('dragenter', () => {
-        item.classList.add('over');
-    });
-
-    item.addEventListener('dragleave', () => {
-        item.classList.remove('over');
-    });
-
-    item.addEventListener('drop', () => {
-        item.classList.remove('over');
-
-        // Hvis der allerede er et barn i tidslinje-elementet, byttes elementerne om
-        if (item.children.length > 0) {
-            const existingElement = item.children[0];
-            const originalParent = draggedElement.parentElement;
-
-            // Flyt det eksisterende element til den oprindelige placering af det trukne element
-            originalParent.appendChild(existingElement);
-
-            // Flyt det trukne element til tidslinje-elementet
-            item.appendChild(draggedElement);
-        } else {
-            // Hvis tidslinje-elementet er tomt, tilføjes det trukne element
-            item.appendChild(draggedElement);
+items.forEach(item => {
+    item.addEventListener('click', () => {
+        const isPeriod = item.dataset.year;
+        const correspondingItem = isPeriod ? yearsContainer.querySelector(`div[data-period="${item.textContent}"]`) : periodsContainer.querySelector(`div[data-year="${item.textContent}"]`);
+        if (correspondingItem) {
+            item.classList.toggle('matched');
+            correspondingItem.classList.toggle('matched');
+            if (item.classList.contains('matched')) {
+                addToScoreboard(item, correspondingItem);
+            }
         }
     });
 });
 
-// Tjek rækkefølgen
-checkOrderBtn.addEventListener("click", () => {
-    let correct = true;
+function addToScoreboard(periodItem, yearItem) {
+    const scoreItem = document.createElement('li');
+    scoreItem.textContent = `${periodItem.textContent} - ${yearItem.textContent}`;
+    scoreList.appendChild(scoreItem);
+}
 
-    timelineItems.forEach(item => {
-        const expectedPeriod = item.getAttribute('data-period');
-        const placedPeriod = item.querySelector('.period');
-
-        // Fjern tidligere farvemarkeringer
-        item.style.backgroundColor = '';
-        
-        if (placedPeriod && placedPeriod.textContent === expectedPeriod) {
-            // Hvis det er korrekt, gør baggrunden grøn
-            item.style.backgroundColor = 'lightgreen';
-        } else if (placedPeriod) {
-            // Hvis det er forkert, gør baggrunden rød
-            item.style.backgroundColor = 'lightcoral';
-            correct = false;
-        }
+document.getElementById('resetButton').addEventListener('click', () => {
+    scoreList.innerHTML = '';
+    items.forEach(item => {
+        item.classList.remove('matched');
     });
-
-    if (correct) {
-        resultText.textContent = "Rækkefølgen er korrekt!";
-        resultText.style.color = "green";
-    } else {
-        resultText.textContent = "Rækkefølgen er forkert!";
-        resultText.style.color = "red";
-    }
 });

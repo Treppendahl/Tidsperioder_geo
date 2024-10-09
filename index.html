@@ -12,29 +12,32 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            height: 130vh;
             margin: 0;
-            cursor: pointer; /* Indikér, at man kan klikke */
+            padding: 10px; /* Tilføj polstring for at undgå kanten */
+            overflow: scroll; /* Gør det muligt at scrolle, hvis indholdet overskrider visningen */
         }
 
         .container {
             width: 100%;
-            max-width: 900px;
+            max-width: 1000px; /* Max bredde for container */
             text-align: center;
             background-color: #fff;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden; /* Skjul overflødig indhold */
         }
 
         h1 {
-            font-size: 22px;
+            font-size: 20px; /* Justeret størrelse for bedre tilpasning */
             color: #333;
             margin-bottom: 20px;
         }
 
         .game-area {
             display: flex;
+            flex-wrap: wrap; /* Gør det muligt at bryde linjer */
             justify-content: space-between;
             margin-bottom: 20px;
         }
@@ -43,10 +46,12 @@
             list-style-type: none;
             padding: 0;
             margin: 0;
+            flex: 1 1 45%; /* Gør, at hver liste fylder 45% af rummet */
+            min-width: 200px; /* Min bredde for lister */
+            margin: 10px; /* Margen mellem lister */
         }
 
         .periods, .timeline {
-            width: 48%;
             background-color: #f9f9f9;
             padding: 10px;
             border-radius: 8px;
@@ -54,7 +59,6 @@
         }
 
         li {
-            width: 100%; 
             height: 40px; 
             margin: 5px 0;
             padding: 5px;
@@ -92,25 +96,50 @@
             color: #007bff;
         }
 
-        #checkOrderBtn {
+        #checkOrderBtn, #resetBtn {
             padding: 10px 20px;
             font-size: 14px;
             cursor: pointer;
-            background-color: #28a745;
-            color: white;
             border: none;
             border-radius: 5px;
             margin-top: 10px;
             transition: background-color 0.3s ease;
+            display: inline-block; /* Gør knapperne til inline-blokke */
+        }
+
+        #checkOrderBtn {
+            background-color: #28a745;
+            color: white;
         }
 
         #checkOrderBtn:hover {
             background-color: #218838;
         }
 
-        #result {
+        #resetBtn {
+            background-color: #007bff;
+            color: white;
+            display: none; /* Skjul reset-knap som standard */
+        }
+
+        #resetBtn:hover {
+            background-color: #0056b3;
+        }
+
+        #timer {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #scoreboard {
             margin-top: 20px;
-            font-size: 14px;
+        }
+
+        #scoreBoardList {
+            padding: 0;
+            list-style-type: none; /* Fjern punkttegn */
         }
 
         li.correct {
@@ -121,13 +150,6 @@
         li.wrong {
             background-color: #f8d7da;
             border-color: #f5c6cb;
-        }
-
-        #timer {
-            margin-top: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            color: #333;
         }
     </style>
 </head>
@@ -157,8 +179,15 @@
         </div>
 
         <button id="checkOrderBtn">Tjek Rækkefølgen</button>
+        <button id="resetBtn">Start Nyt Spil</button>
         <div id="timer">Tid: <span id="timerDisplay">0</span> sek</div>
         <div id="result"></div>
+
+        <!-- Scoreboard section -->
+        <div id="scoreboard">
+            <h2>Scoreboard</h2>
+            <ul id="scoreBoardList"></ul>
+        </div>
     </div>
 
     <script>
@@ -201,6 +230,7 @@
 
         const timelineItems = document.querySelectorAll('#timeline li');
         const checkOrderBtn = document.getElementById("checkOrderBtn");
+        const resetBtn = document.getElementById("resetBtn");
         const resultText = document.getElementById("result");
         const timerDisplay = document.getElementById("timerDisplay");
 
@@ -219,26 +249,26 @@
         }
 
         // Drag events for periods
-        const periodsElements = document.querySelectorAll('.period');
-        periodsElements.forEach(period => {
+        const periodElements = document.querySelectorAll('.period');
+        periodElements.forEach(period => {
             period.addEventListener('dragstart', () => {
-                startTimer(); // Start timer ved dragstart
                 draggedElement = period;
-                period.classList.add('dragging');
+                startTimer();
+                setTimeout(() => {
+                    period.classList.add('dragging');
+                }, 0);
             });
 
             period.addEventListener('dragend', () => {
                 period.classList.remove('dragging');
+                draggedElement = null;
             });
         });
 
-        // Drag events for timeline (allow dropping periods between timeline items)
+        // Drop events for timeline items
         timelineItems.forEach(item => {
             item.addEventListener('dragover', (e) => {
-                e.preventDefault(); 
-            });
-
-            item.addEventListener('dragenter', () => {
+                e.preventDefault();
                 item.classList.add('over');
             });
 
@@ -249,18 +279,19 @@
             item.addEventListener('drop', () => {
                 item.classList.remove('over');
 
-                if (item.children.length > 1) {
+                if (draggedElement) {
                     const existingElement = item.querySelector('.period');
-                    const originalParent = draggedElement.parentElement;
-                    originalParent.appendChild(existingElement);
-                    item.appendChild(draggedElement);
-                } else {
+                    if (existingElement) {
+                        item.removeChild(existingElement); // Fjern eksisterende periode
+                        periodList.appendChild(existingElement); // Flyt eksisterende periode tilbage
+                    }
+
                     item.appendChild(draggedElement);
                 }
             });
         });
 
-        // Tjek rækkefølgen
+        // Tjek rækkefølgen ved at klikke på knappen
         checkOrderBtn.addEventListener('click', () => {
             let correctCount = 0; // Tæller for korrekte placeringer
 
@@ -284,17 +315,69 @@
                 resultText.textContent = "Rækkefølgen er korrekt!";
                 resultText.style.color = "green";
                 clearInterval(timerInterval); // Stop timeren
+                // Tilføj score til scoreboard her
+                addScore(elapsedTime);
+                checkOrderBtn.disabled = true; // Deaktiver knappen
+                resetBtn.style.display = "inline-block"; // Vis reset knappen
             } else {
                 resultText.textContent = "Rækkefølgen er forkert!";
                 resultText.style.color = "red";
             }
         });
 
+        // Funktion til at tilføje score til scoreboard
+        function addScore(time) {
+            const scores = loadScores();
+            scores.push(time); // Tilføj den nye tid
+
+            // Sorter og behold kun de tre bedste
+            scores.sort((a, b) => a - b); // Sorter i stigende rækkefølge
+            const topScores = scores.slice(0, 3); // Behold kun de tre bedste
+
+            // Gem de bedste scores i localStorage
+            saveScores(topScores);
+
+            // Opdater scoreboard i DOM
+            updateScoreboard(topScores);
+        }
+
+        // Funktion til at gemme scores i localStorage
+        function saveScores(scores) {
+            localStorage.setItem('topScores', JSON.stringify(scores));
+        }
+
+        // Indlæs scores fra localStorage
+        function loadScores() {
+            return JSON.parse(localStorage.getItem('topScores')) || [];
+        }
+
+        // Opdater scoreboard visning
+        function updateScoreboard(scores) {
+            const scoreBoardList = document.getElementById("scoreBoardList");
+            scoreBoardList.innerHTML = ''; // Ryd listen først
+            scores.forEach(score => {
+                const li = document.createElement("li");
+                li.textContent = `Tid: ${score} sek`;
+                scoreBoardList.appendChild(li);
+            });
+        }
+
+        // Indlæs scores ved sideindlæsning
+        window.onload = () => {
+            const scores = loadScores();
+            updateScoreboard(scores);
+        };
+
         // Stop timeren ved at klikke på hele skærmen
         document.body.addEventListener('click', () => {
             if (!timerInterval) {
                 startTimer();
             }
+        });
+
+        // Reset knap funktionalitet
+        resetBtn.addEventListener('click', () => {
+            location.reload(); // Genindlæs siden for at starte nyt spil
         });
     </script>
 </body>
